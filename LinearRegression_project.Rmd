@@ -1,0 +1,339 @@
+---
+title: "LinearRegression_project"
+author: "RuoyuZhao"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    pandoc_args: [
+      "--variable",
+      "mainfont:SimSun",
+      "--variable",
+      "CJKmainfont:SimSun"
+      ]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+```{r, results='hold'}
+library(car)
+library(GGally)
+library(ggplot2)
+library(corrgram)
+library(corrplot)
+library(psych)
+library(MASS)
+library(reshape)
+library(CCP)
+library(CCA)
+library(ICSNP)
+library(klaR)
+library(psych)
+library(MASS)
+library(devtools)
+library(dplyr)
+suppressPackageStartupMessages(library(tidyverse))
+library(caTools)
+library(class)
+library(pROC)
+library(leaps)
+library('corrr')
+library('ggcorrplot')
+library("FactoMineR")
+library("ggfortify")
+library("gridExtra")
+library("factoextra")
+```
+```{r, results='hold'}
+envdata <- read.csv('E:/ProgramData/R_project/dataset/LinearRegression/project.csv')
+# 经济：3:10  社会:11:25  生态:26:37
+# -: 8  14  26 27 28 32
+###
+corrplot(cor(envdata[,3:10]), method = 'shade', order = 'AOE')
+corrplot(cor(envdata[,11:25]), method = 'shade', order = 'AOE')
+corrplot(cor(envdata[,26:37]), method = 'shade', order = 'AOE')
+melt.data = melt(as.data.frame(scale(envdata[,3:10])))
+ggplot(data=melt.data,aes(x=variable,y=value,fill=variable)) +
+ geom_boxplot(alpha=0.6,outlier.colour="#FE2222",outlier.shape=20,outlier.size = 3.5)
+melt.data = melt(as.data.frame(scale(envdata[,11:25])))
+ggplot(data=melt.data,aes(x=variable,y=value,fill=variable)) +
+ geom_boxplot(alpha=0.6,outlier.colour="#FE2222",outlier.shape=20,outlier.size = 3.5)
+melt.data = melt(as.data.frame(scale(envdata[,26:37])))
+ggplot(data=melt.data,aes(x=variable,y=value,fill=variable)) +
+ geom_boxplot(alpha=0.6,outlier.colour="#FE2222",outlier.shape=20,outlier.size = 3.5)
+```
+```{r,results='hold'}
+envpca = princomp(envdata[,3:37],scores = T,cor = T)
+summary(envpca)
+fviz_eig(envpca, addlabels = TRUE)
+fviz_pca_var(envpca,col.var = "cos2", # Color by the quality of representation
+             gradient.cols = c("#FE3333", "gold", "green"),repel = TRUE)
+var <- get_pca_var(envpca)
+corrplot(var$cos2, is.corr=FALSE)
+envpca1 = princomp(envdata[,3:10],scores = T,cor = T)
+var1 <- get_pca_var(envpca1)
+corrplot(var1$cos2, is.corr=FALSE)
+envpca2 = princomp(envdata[,11:25],scores = T,cor = T)
+var2 <- get_pca_var(envpca2)
+corrplot(var2$cos2, is.corr=FALSE)
+envpca3 = princomp(envdata[,26:37],scores = T,cor = T)
+var3 <- get_pca_var(envpca3)
+corrplot(var3$cos2, is.corr=FALSE)
+```
+```{r, results='hold'}
+# 经济：3:10  社会:11:25  生态:26:37
+# -: 8  14  26 27 28 32
+T =10; J = 31;
+colmax <- apply(envdata[, 3:37], 2, max)
+colmin <- apply(envdata[, 3:37], 2, min)
+pi <- envdata
+for (i in c(3:37)){
+  pi[,i] <- (envdata[,i] - colmin[i-2])/(colmax[i-2] - colmin[i-2]) + 0.0001}
+for (i in c(8,14,26,27,28,32)){
+  pi[,i] <- (colmax[i-2] - envdata[,i])/(colmax[i-2] - colmin[i-2]) + 0.0001}
+colsum <- colSums(pi[,3:37])
+p <- pi[,3:37]
+for (i in 1:35){
+  p[i] <- pi[,i+2]/colsum[i]}
+plogp <- p*log(p)
+for (i in 1:35){
+  plogp[is.nan(plogp[,i]),i] <- 0}
+e <- -1*colSums(plogp)/log(T*J)
+d <- 1-e
+w1 <- d[1:8]/sum(d[1:8])
+w2 <- d[9:23]/sum(d[9:23])
+w3 <- d[24:35]/sum(d[24:35])
+
+fai <- data.frame(eco = rep(0, nrow(envdata)),
+                     soci = rep(0, nrow(envdata)),
+                     env = rep(0, nrow(envdata)))
+fai[,1] <- rowSums(pi[,3:10]*w1[1:8])
+fai[,2] <- rowSums(pi[,11:25]*w2[1:15])
+fai[,3] <- rowSums(pi[,26:37]*w3[1:12])
+w1
+w2
+w3
+```
+```{r, results='hold'}
+colsumF <- colSums(fai)
+pF <- fai
+for (i in 1:3){
+  pF[i] <- fai[i]/colsumF[i]}
+plogpF <- pF*log(pF)
+for (i in 1:3){
+  plogpF[is.nan(plogpF[,i]),i] <- 0}
+eF <- -1*colSums(plogpF)/log(T*J)
+dF <- 1-eF
+om <- dF/sum(dF)
+Fai <- data.frame(rep(0, nrow(envdata)))
+Fai <- rowSums(fai*om)
+promean <- vector("numeric", 31)
+for (i in 1:31){
+  promean[i] <- sum(Fai[as.integer(10*i-9) : as.integer(10*i)])}
+om
+```
+```{r, results='hold'}
+plotG <- Fai
+plot(plotG[11:20], type = "n", xlim = NULL, ylim = c(0, max(D)), xlab = "年份", ylab = "整体打分")
+# 2 5 11 18 20 24 25 29
+lines(plotG[11:20], type = "o", col = "#EE1200", lwd = 1)
+lines(plotG[41:50], type = "o", col = "#FFC0CB", lwd = 1)
+lines(plotG[101:110], type = "o", col = "#801060", lwd = 1)
+lines(plotG[171:180], type = "o", col = "#106810", lwd = 1)
+lines(plotG[191:200], type = "o", col = "#985800", lwd = 1)
+lines(plotG[231:240], type = "o", col = "#00E0EB", lwd = 1)
+lines(plotG[241:250], type = "o", col = "#DD00EE", lwd = 1)
+lines(plotG[281:290], type = "o", col = "#EEEE00", lwd = 1)
+
+legend("topright", legend = c("北京","广东","黑龙江","内蒙古","青海","上海","四川","云南"), col = c("#EE1200","#FFC0CB","#801060","#106810","#985800","#00E0EB","#DD00EE","#EEEE00"),lty = 1, lwd = 1,cex = 0.65, pt.cex = 0.65)
+axis(1, at = 1:10, labels = c("2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015"))
+axis(2)
+title(main = "部分省市十年间整体评分（熵值法）", sub = "Data from 2006 to 2015")
+```
+
+```{r, results='hold'}
+# TOPSIS
+Z <- fai
+for (i in 1:3){
+  Z[,i] <- fai[,i]/sum(fai[,i]*fai[,i])
+}
+Zcolmax <- apply(Z[, 1:3], 2, max)
+Zcolmin <- apply(Z[, 1:3], 2, min)
+D <- data.frame(D0 = rep(0, nrow(envdata)),
+                D1 = rep(0, nrow(envdata)))
+for (i in 1:310){
+  D[i,1] <- sqrt(sum((Z[i,]-Zcolmin)*(Z[i,]-Zcolmin)))
+  D[i,2] <- sqrt(sum((Z[i,]-Zcolmax)*(Z[i,]-Zcolmax)))}
+C <- D[,1]/(D[,1]+D[,2])
+promean2 <- vector("numeric", 31)
+for (i in 1:31){
+  promean2[i] <- sum(C[as.integer(10*i-9) : as.integer(10*i)])}
+```
+```{r, results='hold'}
+plotG <- C
+plot(plotG[11:20], type = "n", xlim = NULL, ylim = c(0, max(D)), xlab = "年份", ylab = "整体打分")
+# 2 5 11 18 20 24 25 29
+lines(plotG[11:20], type = "o", col = "#EE1200", lwd = 1)
+lines(plotG[41:50], type = "o", col = "#FFC0CB", lwd = 1)
+lines(plotG[101:110], type = "o", col = "#801060", lwd = 1)
+lines(plotG[171:180], type = "o", col = "#106810", lwd = 1)
+lines(plotG[191:200], type = "o", col = "#985800", lwd = 1)
+lines(plotG[231:240], type = "o", col = "#00E0EB", lwd = 1)
+lines(plotG[241:250], type = "o", col = "#DD00EE", lwd = 1)
+lines(plotG[281:290], type = "o", col = "#EEEE00", lwd = 1)
+
+legend("topright", legend = c("北京","广东","黑龙江","内蒙古","青海","上海","四川","云南"), col = c("#EE1200","#FFC0CB","#801060","#106810","#985800","#00E0EB","#DD00EE","#EEEE00"),lty = 1, lwd = 1,cex = 0.65, pt.cex = 0.65)
+axis(1, at = 1:10, labels = c("2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015"))
+axis(2)
+title(main = "部分省市十年间整体评分（熵值法+TOPSIS）", sub = "Data from 2006 to 2015")
+```
+```{r, results='hold'}
+# 对数据进行极差标准化
+library(ggplot2)
+CNAME<-c("安徽","北京","福建","甘肃","广东","广西","贵州",
+         "海南","河北","河南","黑龙江",	"湖北","湖南","吉林",
+         "江苏","江西","辽宁","内蒙古",	"宁夏",	"青海",	
+         "山东","山西","陕西","上海",	"四川",	"天津",		
+         	"西藏",	"新疆","云南","浙江","重庆"		
+         	)
+
+pergdp<-c(3.482459,4.740657,3.649122,3.145108,4.614444,3.344714,3.344614,3.763376,3.243776,3.388572,3.291834,3.532070,3.624336,3.168023,4.206352,3.604532,3.195453,2.956067,3.134360,2.802172,3.911285,3.101035,3.250391,4.345829,3.560687,3.442421,3.517565,3.344073,3.107769,4.010851,3.379604)
+  
+##绘制十年平均条形图
+data<-data.frame(CNAME,pergdp)
+
+ggplot(data,aes(x=reorder(CNAME,pergdp),y=pergdp,fill=pergdp))+
+  geom_bar(stat = 'identity')+
+  scale_fill_gradient(low = "white", high = "red",n.breaks=6)+
+  geom_text(mapping = aes(label = round(pergdp,2)), size = 3, hjust = -0.3)+
+  scale_y_continuous(limits = c(0,7),expand = c(0,0))+
+  theme_bw()+
+  labs(title = "2006~2015十年间31省市平均综合得分（熵值法）",hjust=0.5)+
+  xlab("")+
+  ylab("十年平均得分")+
+  coord_flip()
+```
+```{r, results='hold'}
+# 对数据进行极差标准化
+library(ggplot2)
+CNAME<-c("安徽","北京","福建","甘肃","广东","广西","贵州",
+         "海南","河北","河南","黑龙江",	"湖北","湖南","吉林",
+         "江苏","江西","辽宁","内蒙古",	"宁夏",	"青海",	
+         "山东","山西","陕西","上海",	"四川",	"天津",
+         	"西藏",	"新疆","云南","浙江","重庆"		
+         	)
+
+pergdp<-c(3.160509,4.946338,3.293026,2.684582,4.843168,3.006099,3.032915,3.369569,3.046285,3.386061,3.067893,3.445639,3.335517,2.860366,4.290544,3.178096,3.162560,2.596386,2.647741,2.352298,4.009269,2.738636,3.117354,4.517923,3.314288,3.280092,2.773932,2.935082,2.961319,3.901651,2.960384)
+  
+##绘制十年平均条形图
+data<-data.frame(CNAME,pergdp)
+
+ggplot(data,aes(x=reorder(CNAME,pergdp),y=pergdp,fill=pergdp))+
+  geom_bar(stat = 'identity')+
+  scale_fill_gradient(low = "white", high = "red",n.breaks=6)+
+  geom_text(mapping = aes(label = round(pergdp,2)), size = 3, hjust = -0.3)+
+  scale_y_continuous(limits = c(0,7),expand = c(0,0))+
+  theme_bw()+
+  labs(title = "2006~2015十年间31省市平均综合得分（熵值法+TOPSIS）",hjust=0.5)+
+  xlab("")+
+  ylab("十年平均得分")+
+  coord_flip()
+```
+```{r,results='hold'}
+C2 <- vector("numeric", 31)
+T2 <- vector("numeric", 31)
+C2 <- 3*(fai[,1]*fai[,2]*fai[,3])**(1/3)/(fai[,1]+fai[,2]+fai[,3])
+T2 <- rowSums(fai*om)
+D <- sqrt(C2*T2)
+
+plotG <- D
+plot(plotG[11:20], type = "n", xlim = NULL, ylim = c(0, max(D)), xlab = "年份", ylab = "耦合度")
+# 2 5 11 18 20 24 25 29
+lines(plotG[11:20], type = "o", col = "#EE1200", lwd = 1)
+lines(plotG[41:50], type = "o", col = "#FFC0CB", lwd = 1)
+lines(plotG[101:110], type = "o", col = "#801060", lwd = 1)
+lines(plotG[171:180], type = "o", col = "#106810", lwd = 1)
+lines(plotG[191:200], type = "o", col = "#985800", lwd = 1)
+lines(plotG[231:240], type = "o", col = "#00E0EB", lwd = 1)
+lines(plotG[241:250], type = "o", col = "#DD00EE", lwd = 1)
+lines(plotG[281:290], type = "o", col = "#EEEE00", lwd = 1)
+
+legend("bottomright", legend = c("北京","广东","黑龙江","内蒙古","青海","上海","四川","云南"), col = c("#EE1200","#FFC0CB","#801060","#106810","#985800","#00E0EB","#DD00EE","#EEEE00"),lty = 1, lwd = 1,horiz=TRUE, cex=0.62, pt.cex=0.62)
+axis(1, at = 1:10, labels = c("2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015"))
+axis(2)
+title(main = "部分省市十年间耦合度", sub = "Data from 2006 to 2015")
+```
+
+```{r,results='hold'}
+## 因子分析，考虑解释变量可能的潜在变量
+# 因变量：26 解释变量：28 30 32 33 35 36 37
+YRdata <- envdata[c(1:10, 141:150, 231:240, 291:300),c(26, 28, 30, 32, 33, 35, 36, 37)]
+colnames(YRdata) <- c("SO2","water","forest","indfume","ubgreen","fumemana","pltmana","pltmanaport")
+ggpairs(YRdata, aes(alpha = 0.5),
+        upper = list(combo = "facetdensity"), lower = list(continuous = "smooth"))
+```
+```{r, results='hold'}
+FA_PC <- principal(YRdata[,-1], nfactors=3, rotate="varimax")
+FA_PC # print results
+plot(FA_PC$values,type="b") # scree plot
+plot(FA_PC$loadings)
+plot(FA_PC$loadings,type="n") # set up plot
+text(FA_PC$loadings,labels=names(YRdata),cex=.7) # add variable names
+```
+```{r,results='hold'}
+library(leaps)
+model1 <- lm(SO2~water + forest + indfume + ubgreen + fumemana + pltmana + pltmanaport, data = YRdata)
+summary(model1)
+# 方差膨胀因子（多重共线性）
+print(vif(model1))
+
+regsubsetObj <- regsubsets(x=YRdata[,-1],y=YRdata$SO2,nbest=3,really.big=F)
+reg.summary <- summary(regsubsetObj)
+plot(regsubsetObj,scale='Cp')
+cat("\n cp: \n")
+sort(reg.summary[['cp']])
+
+plot(regsubsetObj,scale='adjr2')
+cat("\n adjr2: \n")
+sort(reg.summary[['adjr2']])
+```
+```{r, results='hold'}
+# (a)
+reg2<-lm(SO2~water+fumemana+pltmana+pltmanaport,data=YRdata)
+summary(reg2)
+cat("vif:\n")
+print(vif(reg2))
+
+# (b)
+par(mfrow=c(1,1))
+plot(reg2$residuals~reg2$fitted.values)
+par(mfrow=c(2,2))
+plot(reg2$residuals~water,data=YRdata)
+plot(reg2$residuals~fumemana,data=YRdata)
+plot(reg2$residuals~pltmana,data=YRdata)
+plot(reg2$residuals~pltmanaport,data=YRdata)
+
+# (c) Added-variableplots
+avPlots(reg2)
+```
+```{r,results='hold'}
+YRdata$fumemana2 <- YRdata$fumemana**2
+reg3<-lm(SO2~water+fumemana+pltmana+pltmanaport+fumemana2,data=YRdata)
+summary(reg3)
+YRdata$fumemana2 <- YRdata$fumemana**2
+reg3<-lm(SO2~water+fumemana+pltmana+pltmanaport+fumemana2,data=YRdata)
+summary(reg3)
+cat("vif:\n")
+print(vif(reg3))
+
+# (b)
+par(mfrow=c(2,2))
+plot(reg3$residuals~reg3$fitted.values)
+plot(reg3$residuals~fumemana,data=YRdata)
+plot(reg3$residuals~fumemana2,data=YRdata)
+
+# (c) Added-variableplots
+avPlots(reg3)
+```
