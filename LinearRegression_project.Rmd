@@ -63,6 +63,9 @@ ggplot(data=melt.data,aes(x=variable,y=value,fill=variable)) +
 melt.data = melt(as.data.frame(scale(envdata[,26:37])))
 ggplot(data=melt.data,aes(x=variable,y=value,fill=variable)) +
  geom_boxplot(alpha=0.6,outlier.colour="#FE2222",outlier.shape=20,outlier.size = 3.5)
+h <- hist(envdata$water_per,col="chocolate",border="brown",ylim=c(0,350))
+h
+text(h$mids,h$counts,labels=h$counts, adj=c(0.5, -0.5))
 ```
 ```{r,results='hold'}
 envpca = princomp(envdata[,3:37],scores = T,cor = T)
@@ -132,6 +135,13 @@ Fai <- rowSums(fai*om)
 promean <- vector("numeric", 31)
 for (i in 1:31){
   promean[i] <- sum(Fai[as.integer(10*i-9) : as.integer(10*i)])}
+ecomean <- vector("numeric", 31)
+socimean <- vector("numeric", 31)
+envmean <- vector("numeric", 31)
+for (i in 1:31){
+  ecomean[i] <- sum(fai[as.integer(10*i-9) : as.integer(10*i),1])
+  socimean[i] <- sum(fai[as.integer(10*i-9) : as.integer(10*i),2])
+  envmean[i] <- sum(fai[as.integer(10*i-9) : as.integer(10*i),3])}
 om
 ```
 ```{r, results='hold'}
@@ -190,7 +200,81 @@ axis(2)
 title(main = "部分省市十年间整体评分（熵值法+TOPSIS）", sub = "Data from 2006 to 2015")
 ```
 ```{r, results='hold'}
-# 对数据进行极差标准化
+library(ggplot2)
+CNAME<-c("安徽","北京","福建","甘肃","广东","广西","贵州",
+         "海南","河北","河南","黑龙江",	"湖北","湖南","吉林",
+         "江苏","江西","辽宁","内蒙古",	"宁夏",	"青海",	
+         "山东","山西","陕西","上海",	"四川",	"天津",		
+         	"西藏",	"新疆","云南","浙江","重庆"		
+         	)
+pergdp<-c(3.088229,5.224735,3.388216,2.935810,4.623959,3.003495,3.764154,3.812884,2.932441,2.950154,2.853820,3.551200,3.477162,2.770639,4.432465,2.931683,2.954443,2.788893,3.124718,2.619511,3.783759,2.620820,3.052354,4.681255,3.332842,3.191693,3.818807,3.089094,3.406431,3.783199,3.469680)
+##绘制十年平均条形图
+data<-data.frame(CNAME,pergdp)
+
+ggplot(data,aes(x=reorder(CNAME,pergdp),y=pergdp,fill=pergdp))+
+  geom_bar(stat = 'identity')+
+  scale_fill_gradient(low = "white", high = "red",n.breaks=6)+
+  geom_text(mapping = aes(label = round(pergdp,2)), size = 3, hjust = -0.3)+
+  scale_y_continuous(limits = c(0,7),expand = c(0,0))+
+  theme_bw()+
+  labs(title = "2006~2015十年间31省市经济系统得分（熵值法）",hjust=0.5)+
+  xlab("")+
+  ylab("经济系统得分")+
+  coord_flip()
+```
+```{r, results='hold'}
+library(ggplot2)
+CNAME<-c("安徽","北京","福建","甘肃","广东","广西","贵州",
+         "海南","河北","河南","黑龙江",	"湖北","湖南","吉林",
+         "江苏","江西","辽宁","内蒙古",	"宁夏",	"青海",	
+         "山东","山西","陕西","上海",	"四川",	"天津",		
+         	"西藏",	"新疆","云南","浙江","重庆"		
+         	)
+
+pergdp<-c(3.113105,4.686267,2.993260,2.738453,5.143720,2.891341,2.326029,2.544667,3.452076,4.297359,3.350560,3.537751,3.322243,2.786406,4.629572,3.236669,3.429591,2.601634,2.086809,2.050276,4.696845,3.043882,3.437195,4.517635,3.383480,3.404618,1.524032,3.057143,2.540045,3.919904,2.458100)
+  
+##绘制十年平均条形图
+data<-data.frame(CNAME,pergdp)
+
+ggplot(data,aes(x=reorder(CNAME,pergdp),y=pergdp,fill=pergdp))+
+  geom_bar(stat = 'identity')+
+  scale_fill_gradient(low = "white", high = "red",n.breaks=6)+
+  geom_text(mapping = aes(label = round(pergdp,2)), size = 3, hjust = -0.3)+
+  scale_y_continuous(limits = c(0,7),expand = c(0,0))+
+  theme_bw()+
+  labs(title = "2006~2015十年间31省市社会系统得分（熵值法）",hjust=0.5)+
+  xlab("")+
+  ylab("社会系统得分")+
+  coord_flip()
+```
+```{r, results='hold'}
+library(ggplot2)
+CNAME<-c("安徽","北京","福建","甘肃","广东","广西","贵州",
+         "海南","河北","河南","黑龙江",	"湖北","湖南","吉林",
+         "江苏","江西","辽宁","内蒙古",	"宁夏",	"青海",	
+         "山东","山西","陕西","上海",	"四川",	"天津",		
+         	"西藏",	"新疆","云南","浙江","重庆"		
+         	)
+
+pergdp<-c(3.980405,4.672655,4.293856,3.446163,4.412489,4.049275,3.975399,4.872556,3.131850,2.620447,3.787226,3.668265,3.639370,3.976742,3.458535,4.251972,3.628543,3.533338,4.036822,3.719274,3.088499,3.365523,3.460525,4.001328,3.622791,3.791683,4.352816,3.419270,3.948683,4.284451,3.935664)
+  
+##绘制十年平均条形图
+data<-data.frame(CNAME,pergdp)
+
+ggplot(data,aes(x=reorder(CNAME,pergdp),y=pergdp,fill=pergdp))+
+  geom_bar(stat = 'identity')+
+  scale_fill_gradient(low = "white", high = "red",n.breaks=6)+
+  geom_text(mapping = aes(label = round(pergdp,2)), size = 3, hjust = -0.3)+
+  scale_y_continuous(limits = c(0,7),expand = c(0,0))+
+  theme_bw()+
+  labs(title = "2006~2015十年间31省市生态系统得分（熵值法）",hjust=0.5)+
+  xlab("")+
+  ylab("生态系统得分")+
+  coord_flip()
+```
+
+
+```{r, results='hold'}
 library(ggplot2)
 CNAME<-c("安徽","北京","福建","甘肃","广东","广西","贵州",
          "海南","河北","河南","黑龙江",	"湖北","湖南","吉林",
@@ -267,7 +351,7 @@ title(main = "部分省市十年间耦合度", sub = "Data from 2006 to 2015")
 ```
 
 ```{r,results='hold'}
-## 因子分析，考虑解释变量可能的潜在变量
+## 因子分析，考虑解释变量可能的潜在变量 
 # 因变量：26 解释变量：28 30 32 33 35 36 37
 YRdata <- envdata[c(1:10, 141:150, 231:240, 291:300),c(26, 28, 30, 32, 33, 35, 36, 37)]
 colnames(YRdata) <- c("SO2","water","forest","indfume","ubgreen","fumemana","pltmana","pltmanaport")
@@ -276,11 +360,18 @@ ggpairs(YRdata, aes(alpha = 0.5),
 ```
 ```{r, results='hold'}
 FA_PC <- principal(YRdata[,-1], nfactors=3, rotate="varimax")
-FA_PC # print results
-plot(FA_PC$values,type="b") # scree plot
-plot(FA_PC$loadings)
-plot(FA_PC$loadings,type="n") # set up plot
-text(FA_PC$loadings,labels=names(YRdata),cex=.7) # add variable names
+# FA_PC # print results
+# plot(FA_PC$values,type="b") # scree plot
+# plot(FA_PC$loadings)
+# plot(FA_PC$loadings,type="n") # set up plot
+# text(FA_PC$loadings,labels=names(YRdata),cex=.7) # add variable names
+
+FA_MLE <- factanal(YRdata[,-1],factors=4,rotation="varimax")
+# FA_MLE$uniquenesses
+FA_MLE
+plot(FA_MLE$loadings)
+plot(FA_MLE$loadings,type="n") # set up plot
+text(FA_MLE$loadings,labels=names(YRdata),cex=0.9) # add variable names
 ```
 ```{r,results='hold'}
 library(leaps)
@@ -319,11 +410,9 @@ plot(reg2$residuals~pltmanaport,data=YRdata)
 avPlots(reg2)
 ```
 ```{r,results='hold'}
-YRdata$fumemana2 <- YRdata$fumemana**2
-reg3<-lm(SO2~water+fumemana+pltmana+pltmanaport+fumemana2,data=YRdata)
+YRdata$pltmanaport2 <- sqrt(YRdata$pltmanaport)
+reg3<-lm(SO2~water+fumemana+pltmana+pltmanaport2,data=YRdata)
 summary(reg3)
-YRdata$fumemana2 <- YRdata$fumemana**2
-reg3<-lm(SO2~water+fumemana+pltmana+pltmanaport+fumemana2,data=YRdata)
 summary(reg3)
 cat("vif:\n")
 print(vif(reg3))
@@ -331,8 +420,8 @@ print(vif(reg3))
 # (b)
 par(mfrow=c(2,2))
 plot(reg3$residuals~reg3$fitted.values)
-plot(reg3$residuals~fumemana,data=YRdata)
-plot(reg3$residuals~fumemana2,data=YRdata)
+plot(reg3$residuals~pltmanaport,data=YRdata)
+plot(reg3$residuals~pltmanaport2,data=YRdata)
 
 # (c) Added-variableplots
 avPlots(reg3)
